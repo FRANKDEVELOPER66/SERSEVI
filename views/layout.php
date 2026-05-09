@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="app-name" content="<?= $_ENV['APP_NAME'] ?>">
-    <link rel="shortcut icon" href="<?= asset('images/cit.png') ?>" type="image/x-icon">
+    <link rel="shortcut icon" href="<?= asset('images/SERSEVI.jpeg') ?>" type="image/x-icon">
     <link rel="stylesheet" href="<?= asset('build/styles.css') ?>">
     <title>SERSEVI</title>
 </head>
@@ -19,7 +19,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <a class="navbar-brand" href="/SERSEVI/recibos">
-                <img src="<?= asset('./images/cit.png') ?>" width="35px'" alt="cit">
+                <img src="<?= asset('./images/SERSEVI.jpeg') ?>" width="35px'" alt="cit">
                 SERSEVI
             </a>
             <div class="collapse navbar-collapse" id="navbarToggler">
