@@ -199,14 +199,9 @@
             <!-- Pagador -->
             <div class="form-section-title"><i class="bi bi-person me-1"></i>Datos del pagador</div>
             <div class="mb-3">
-                <label class="form-label">Nombre <span style="color:#e05050">*</span></label>
+                <label class="form-label">Persona / Entidad <span style="color:#e05050">*</span></label>
                 <input type="text" class="form-control" id="f-nombre"
-                    placeholder="Nombre completo de quien paga">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Entidad</label>
-                <input type="text" class="form-control" id="f-entidad"
-                    placeholder="Empresa o institución">
+                    placeholder="Nombre completo o razón social de quien paga">
             </div>
 
             <div class="divider"></div>
@@ -225,6 +220,14 @@
                     <?php endforeach; ?>
                 </select>
             </div>
+
+            <!-- Descripción -->
+            <div class="mb-3">
+                <label class="form-label">Descripción del servicio</label>
+                <textarea class="form-control" id="f-descripcion" rows="4"
+                    placeholder="Detalle específico del servicio prestado, fechas, ubicación, personal asignado, etc."></textarea>
+            </div>
+
             <div class="row mb-3">
                 <div class="col-5">
                     <label class="form-label">Monto (Q) <span style="color:#e05050">*</span></label>
@@ -237,6 +240,7 @@
                         placeholder="Se genera automático">
                 </div>
             </div>
+
             <div class="mb-3">
                 <label class="form-label">Forma de pago</label>
                 <div class="d-flex gap-4 mt-1">
@@ -296,7 +300,7 @@
             <div class="modal-body bg-white rounded-3 m-3 p-4" id="modal-recibo-body"></div>
             <div class="modal-footer">
                 <button class="btn btn-sersevi" id="btn-imprimir">
-                    <i class="bi bi-printer me-2"></i>Imprimir
+                    <i class="bi bi-printer me-2"></i>Imprimir / PDF
                 </button>
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
@@ -304,6 +308,5 @@
     </div>
 </div>
 
-<!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="<?= asset('build/js/recibos/index.js') ?>"></script>

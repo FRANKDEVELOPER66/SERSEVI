@@ -7,12 +7,10 @@ use Model\Recibo;
 
 class RecibosController extends AppController
 {
-
     public static function index(Router $router): void
     {
         $pagina    = isset($_GET['pagina']) ? max(1, (int) $_GET['pagina']) : 1;
         $resultado = Recibo::listar($pagina);
-
         $router->render('recibos/index', [
             'recibos' => $resultado['datos'],
             'total'   => $resultado['total'],
@@ -33,7 +31,6 @@ class RecibosController extends AppController
 
     public static function crear(Router $router): void
     {
-        // Limpiar cualquier output previo para garantizar JSON puro
         if (ob_get_level()) ob_clean();
         header('Content-Type: application/json');
 
@@ -51,8 +48,8 @@ class RecibosController extends AppController
             'fecha'           => trim($body['fecha']           ?? date('Y-m-d')),
             'lugar'           => trim($body['lugar']           ?? ''),
             'nombre_pagador'  => trim($body['nombre_pagador']  ?? ''),
-            'entidad_pagador' => trim($body['entidad_pagador'] ?? ''),
             'concepto'        => trim($body['concepto']        ?? 'SERVICIOS DE SEGURIDAD'),
+            'descripcion'     => trim($body['descripcion']     ?? ''),
             'monto'           => (float) ($body['monto']       ?? 0),
             'monto_letras'    => trim($body['monto_letras']    ?? ''),
             'forma_pago'      => trim($body['forma_pago']      ?? 'Efectivo'),
@@ -92,13 +89,11 @@ class RecibosController extends AppController
     {
         if (ob_get_level()) ob_clean();
         header('Content-Type: application/json');
-
         $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if (!$id) {
             echo json_encode(['resultado' => false, 'mensaje' => 'ID requerido']);
             return;
         }
-
         $recibo = Recibo::buscarConOrg($id);
         echo json_encode(
             $recibo
@@ -111,21 +106,15 @@ class RecibosController extends AppController
     {
         if (ob_get_level()) ob_clean();
         header('Content-Type: application/json');
-
         $body   = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        $id     = (int)  ($body['id']     ?? 0);
-        $motivo = trim($body['motivo'] ?? '');
-
+        $id     = (int) ($body['id']    ?? 0);
+        $motivo = trim($body['motivo']  ?? '');
         if (!$id) {
             echo json_encode(['resultado' => false, 'mensaje' => 'ID requerido']);
             return;
         }
-
         $ok = Recibo::anular($id, $motivo);
-        echo json_encode([
-            'resultado' => $ok,
-            'mensaje'   => $ok ? 'Recibo anulado' : 'Error al anular',
-        ]);
+        echo json_encode(['resultado' => $ok, 'mensaje' => $ok ? 'Recibo anulado' : 'Error al anular']);
     }
 
     public static function siguienteNumero(Router $router): void

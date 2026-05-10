@@ -8,14 +8,12 @@ use Model\Recibo;
 
 class ReciboPDFController extends AppController
 {
-
     public static function generar(Router $router): void
     {
         $id = (int) ($_GET['id'] ?? 0);
-
         if (!$id) {
             http_response_code(400);
-            echo 'ID de recibo requerido';
+            echo 'ID requerido';
             return;
         }
 
@@ -23,7 +21,6 @@ class ReciboPDFController extends AppController
 
         try {
             $recibo = Recibo::buscarConOrg($id);
-
             if (!$recibo) {
                 http_response_code(404);
                 echo 'Recibo no encontrado';
@@ -46,16 +43,13 @@ class ReciboPDFController extends AppController
 
             $mpdf->SetTitle('Recibo No. ' . $recibo['numero']);
             $mpdf->SetAuthor($recibo['organizacion'] ?? 'SERSEVI');
-
             $mpdf->WriteHTML(self::estilos(), \Mpdf\HTMLParserMode::HEADER_CSS);
             $mpdf->WriteHTML(self::htmlRecibo($recibo));
 
             $nombre = 'Recibo_' . $recibo['numero'] . '_' . date('Ymd') . '.pdf';
-
             header('Content-Type: application/pdf');
             header('Content-Disposition: inline; filename="' . $nombre . '"');
             header('Cache-Control: private, max-age=0, must-revalidate');
-
             $mpdf->Output($nombre, \Mpdf\Output\Destination::INLINE);
             exit;
         } catch (\Exception $e) {
@@ -64,7 +58,6 @@ class ReciboPDFController extends AppController
         }
     }
 
-    // ── LOGO en base64 ────────────────────────────────────────────
     private static function logoBase64(): string
     {
         $path = $_SERVER['DOCUMENT_ROOT'] . '/' . $_ENV['APP_NAME'] . '/public/images/SERSEVI.jpeg';
@@ -72,18 +65,15 @@ class ReciboPDFController extends AppController
         return 'data:image/jpeg;base64,' . base64_encode(file_get_contents($path));
     }
 
-    // ── HTML DEL RECIBO ───────────────────────────────────────────
     private static function htmlRecibo(array $r): string
     {
-        $fmtDate = fn($d) => date('d/m/Y', strtotime($d));
+        $fmtDate  = fn($d) => date('d/m/Y', strtotime($d));
         $formatoQ = fn($v) => 'Q. ' . number_format((float)$v, 2);
 
         $logo    = self::logoBase64();
-        $logoTag = $logo
-            ? '<img src="' . $logo . '" style="max-height:65px;max-width:130px;object-fit:contain;">'
-            : '';
+        $logoTag = $logo ? '<img src="' . $logo . '" style="max-height:65px;max-width:130px;object-fit:contain;">' : '';
 
-        $formas   = ['Efectivo', 'Cheque', 'Transferencia'];
+        $formas    = ['Efectivo', 'Cheque', 'Transferencia'];
         $formaHTML = '';
         foreach ($formas as $f) {
             $marcado    = $r['forma_pago'] === $f ? '&#10003;' : '';
@@ -101,12 +91,19 @@ class ReciboPDFController extends AppController
             </td>';
         }
 
-        $receptor = $r['nombre_receptor'] ?: '';
-        $cargo    = $r['cargo_receptor']  ?: '';
+        $receptor    = $r['nombre_receptor'] ?: '';
+        $cargo       = $r['cargo_receptor']  ?: '';
+        $descripcion = !empty($r['descripcion'])
+            ? '<div class="seccion-box" style="margin-bottom:14px;">
+                    <div class="seccion-lbl">Descripción del servicio:</div>
+                    <div class="seccion-val" style="white-space:pre-wrap;line-height:1.6;">'
+            . htmlspecialchars($r['descripcion'])
+            . '</div>
+               </div>'
+            : '';
 
         return '
         <div class="recibo-wrap">
-
             <!-- CABECERA -->
             <table width="100%" style="border-collapse:collapse;background:#1a2a5e;">
                 <tr>
@@ -132,7 +129,7 @@ class ReciboPDFController extends AppController
                 </tr>
             </table>
 
-            <!-- FRANJA DORADA -->
+            <!-- FRANJA -->
             <div style="background:#c9922a;height:4px;"></div>
 
             <!-- CUERPO -->
@@ -154,19 +151,15 @@ class ReciboPDFController extends AppController
                     </tr>
                 </table>
 
-                <!-- Datos del pagador -->
+                <!-- Pagador -->
                 <table width="100%" style="border-collapse:collapse;margin-bottom:10px;">
                     <tr>
                         <td class="td-lbl">Recibimos de:</td>
                         <td class="td-val"><strong>' . htmlspecialchars($r['nombre_pagador']) . '</strong></td>
                     </tr>
-                    <tr>
-                        <td class="td-lbl">Entidad / Empresa:</td>
-                        <td class="td-val">' . htmlspecialchars($r['entidad_pagador'] ?: '—') . '</td>
-                    </tr>
                 </table>
 
-                <!-- Cantidad en letras -->
+                <!-- Cantidad -->
                 <div class="seccion-box" style="margin-bottom:10px;">
                     <div class="seccion-lbl">La cantidad de:</div>
                     <div class="seccion-val" style="font-size:11pt;font-weight:bold;">
@@ -175,10 +168,13 @@ class ReciboPDFController extends AppController
                 </div>
 
                 <!-- Concepto -->
-                <div class="seccion-box" style="margin-bottom:14px;">
+                <div class="seccion-box" style="margin-bottom:10px;">
                     <div class="seccion-lbl">Por concepto de:</div>
                     <div class="seccion-val">' . htmlspecialchars($r['concepto']) . '</div>
                 </div>
+
+                <!-- Descripción (si existe) -->
+                ' . $descripcion . '
 
                 <!-- Forma de pago + Total -->
                 <table width="100%" style="border-collapse:collapse;margin-bottom:20px;">
@@ -191,15 +187,12 @@ class ReciboPDFController extends AppController
                             </table>
                         </td>
                         <td style="text-align:right;vertical-align:middle;padding:0;">
-                            <table style="border-collapse:collapse;margin-left:auto;
-                                border:2pt solid #1a2a5e;border-radius:3pt;">
+                            <table style="border-collapse:collapse;margin-left:auto;border:2pt solid #1a2a5e;">
                                 <tr>
                                     <td style="padding:6px 20px;text-align:right;">
-                                        <div style="font-size:7.5pt;font-weight:bold;
-                                            text-transform:uppercase;color:#1a2a5e;
-                                            letter-spacing:.5pt;">Total</div>
-                                        <div style="font-size:22pt;font-weight:900;
-                                            color:#c9922a;white-space:nowrap;">
+                                        <div style="font-size:7.5pt;font-weight:bold;text-transform:uppercase;
+                                            color:#1a2a5e;letter-spacing:.5pt;">Total</div>
+                                        <div style="font-size:22pt;font-weight:900;color:#c9922a;white-space:nowrap;">
                                             ' . $formatoQ($r['monto']) . '
                                         </div>
                                     </td>
@@ -223,9 +216,7 @@ class ReciboPDFController extends AppController
                         </td>
                         <td style="text-align:center;padding:10px 20px;">
                             <div style="height:45px;border-bottom:1.5pt solid #1a2a5e;"></div>
-                            <div style="font-size:9.5pt;font-weight:bold;color:#111;margin-top:5px;">
-                                &nbsp;
-                            </div>
+                            <div style="font-size:9.5pt;color:#111;margin-top:5px;">&nbsp;</div>
                             <div style="font-size:7.5pt;color:#999;text-transform:uppercase;
                                 letter-spacing:.5pt;margin-top:3px;">Entregué conforme</div>
                         </td>
@@ -240,63 +231,28 @@ class ReciboPDFController extends AppController
                 Documento no contable &nbsp;·&nbsp; Comprobante de pago interno
                 &nbsp;·&nbsp; SERSEVI &copy; ' . date('Y') . '
             </div>
-
         </div>';
     }
 
-    // ── CSS ───────────────────────────────────────────────────────
     private static function estilos(): string
     {
         return '
         <style>
             * { box-sizing: border-box; }
             body { font-family: dejavusans, sans-serif; font-size: 10pt; color: #111; margin: 0; padding: 0; }
-
-            .recibo-wrap {
-                border: 2pt solid #1a2a5e;
-                border-radius: 4pt;
-                overflow: hidden;
-            }
-
+            .recibo-wrap { border: 2pt solid #1a2a5e; overflow: hidden; }
             .td-lbl {
-                background: #eef2f8;
-                font-weight: bold;
-                color: #1a2a5e;
-                font-size: 7.5pt;
-                text-transform: uppercase;
-                letter-spacing: .5pt;
-                padding: 7px 10px;
-                border: 1pt solid #c5cfe0;
-                width: 28%;
-                white-space: nowrap;
+                background: #eef2f8; font-weight: bold; color: #1a2a5e;
+                font-size: 7.5pt; text-transform: uppercase; letter-spacing: .5pt;
+                padding: 7px 10px; border: 1pt solid #c5cfe0; width: 28%; white-space: nowrap;
             }
-            .td-val {
-                padding: 7px 10px;
-                border: 1pt solid #c5cfe0;
-                font-size: 10pt;
-                color: #111;
-                background: #fff;
-            }
-
+            .td-val { padding: 7px 10px; border: 1pt solid #c5cfe0; font-size: 10pt; color: #111; background: #fff; }
             .seccion-box {
-                background: #eef2f8;
-                border: 1pt solid #c5cfe0;
-                border-left: 3pt solid #1a2a5e;
-                border-radius: 0 3pt 3pt 0;
-                padding: 8px 12px;
+                background: #eef2f8; border: 1pt solid #c5cfe0;
+                border-left: 3pt solid #1a2a5e; padding: 8px 12px;
             }
-            .seccion-lbl {
-                font-size: 7.5pt;
-                font-weight: bold;
-                text-transform: uppercase;
-                color: #1a2a5e;
-                letter-spacing: .5pt;
-                margin-bottom: 4px;
-            }
-            .seccion-val {
-                font-size: 10pt;
-                color: #111;
-            }
+            .seccion-lbl { font-size: 7.5pt; font-weight: bold; text-transform: uppercase; color: #1a2a5e; letter-spacing: .5pt; margin-bottom: 4px; }
+            .seccion-val { font-size: 10pt; color: #111; }
         </style>';
     }
 }

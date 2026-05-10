@@ -37,7 +37,7 @@ function numALetras(num) {
 
 function formatoQ(v) { return 'Q. ' + parseFloat(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
 
-// ── Estilos del recibo (preview en modal) ──────────────────────
+// ── Estilos del recibo (preview modal) ────────────────────────
 function estilosRecibo() {
     return `
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -60,12 +60,12 @@ function estilosRecibo() {
         .recibo-tabla td { padding: 8px 10px; border: 1px solid #c5cfe0; font-size: 12px; vertical-align: top; }
         .recibo-tabla td.lbl { background: #eef2f8; font-weight: 700; color: #1a2a5e; width: 28%; white-space: nowrap; }
         .recibo-tabla td.val { color: #111; }
-        .recibo-letras { background: #eef2f8; border: 1px solid #c5cfe0; border-radius: 4px; padding: 10px 14px; margin-bottom: 14px; }
-        .recibo-letras .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #1a2a5e; margin-bottom: 4px; letter-spacing: 0.5px; }
-        .recibo-letras .val { font-size: 13px; font-weight: 600; color: #111; }
-        .recibo-concepto { border: 1px solid #c5cfe0; border-radius: 4px; padding: 10px 14px; margin-bottom: 16px; }
-        .recibo-concepto .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #1a2a5e; margin-bottom: 4px; letter-spacing: 0.5px; }
-        .recibo-concepto .val { font-size: 13px; color: #111; }
+        .recibo-box { background: #eef2f8; border: 1px solid #c5cfe0; border-left: 3px solid #1a2a5e; padding: 10px 14px; margin-bottom: 14px; border-radius: 0 4px 4px 0; }
+        .recibo-box .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #1a2a5e; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .recibo-box .val { font-size: 13px; color: #111; }
+        .recibo-desc { border: 1px solid #c5cfe0; padding: 10px 14px; margin-bottom: 16px; border-radius: 4px; background: #fff; min-height: 48px; }
+        .recibo-desc .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #1a2a5e; margin-bottom: 4px; letter-spacing: 0.5px; }
+        .recibo-desc .val { font-size: 12px; color: #333; line-height: 1.6; white-space: pre-wrap; }
         .recibo-bottom { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .forma-pago { display: flex; gap: 16px; }
         .forma-opt { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #555; }
@@ -93,6 +93,13 @@ function buildReceiptHTML(r) {
             <span>${f}</span>
         </div>`
     ).join('');
+
+    const descHTML = r.descripcion
+        ? `<div class="recibo-desc">
+               <div class="lbl">Descripción del servicio:</div>
+               <div class="val">${r.descripcion}</div>
+           </div>`
+        : '';
 
     return `
     <div class="recibo-wrap">
@@ -122,19 +129,16 @@ function buildReceiptHTML(r) {
                     <td class="lbl">Recibimos de:</td>
                     <td class="val"><strong>${r.nombre_pagador}</strong></td>
                 </tr>
-                <tr>
-                    <td class="lbl">Entidad / Empresa:</td>
-                    <td class="val">${r.entidad_pagador || '—'}</td>
-                </tr>
             </table>
-            <div class="recibo-letras">
+            <div class="recibo-box">
                 <div class="lbl">La cantidad de:</div>
-                <div class="val">${r.monto_letras || numALetras(parseFloat(r.monto))}</div>
+                <div class="val" style="font-size:13px;font-weight:600;">${r.monto_letras || numALetras(parseFloat(r.monto))}</div>
             </div>
-            <div class="recibo-concepto">
+            <div class="recibo-box">
                 <div class="lbl">Por concepto de:</div>
                 <div class="val">${r.concepto}</div>
             </div>
+            ${descHTML}
             <div class="recibo-bottom">
                 <div>
                     <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1a2a5e;margin-bottom:8px;letter-spacing:.5px">Forma de pago:</div>
@@ -173,17 +177,13 @@ function mostrarModalRecibo(recibo) {
 
     bodyEl.innerHTML = `<style>${estilosRecibo()}</style>${buildReceiptHTML(recibo)}`;
 
-    if (!modalInstance) {
-        modalInstance = new Modal(modalEl);
-    }
+    if (!modalInstance) modalInstance = new Modal(modalEl);
     modalInstance.show();
 
-    // ── Botón imprimir → PDF server-side ──────────────────────
     document.getElementById('btn-imprimir')?.addEventListener('click', () => {
         window.open(`/${APP}/recibos/pdf?id=${recibo.id}`, '_blank');
     }, { once: true });
 
-    // ── Al cerrar → limpiar y redirigir si es página nuevo ────
     modalEl.addEventListener('hidden.bs.modal', () => {
         bodyEl.innerHTML = '';
         if (window.location.pathname.includes('/recibos/nuevo')) {
@@ -207,7 +207,7 @@ if (btnGuardar) {
         const concepto = document.getElementById('f-concepto')?.value.trim();
         const fecha = document.getElementById('f-fecha')?.value.trim();
 
-        if (!nombre) { swalError('El nombre del pagador es requerido.'); return; }
+        if (!nombre) { swalError('El nombre de la persona o entidad es requerido.'); return; }
         if (!concepto) { swalError('Selecciona un concepto de pago.'); return; }
         if (monto <= 0) { swalError('Ingresa un monto válido mayor a cero.'); return; }
         if (!fecha) { swalError('La fecha es requerida.'); return; }
@@ -217,8 +217,8 @@ if (btnGuardar) {
             fecha,
             lugar: document.getElementById('f-lugar')?.value.trim(),
             nombre_pagador: nombre,
-            entidad_pagador: document.getElementById('f-entidad')?.value.trim(),
             concepto,
+            descripcion: document.getElementById('f-descripcion')?.value.trim(),
             monto,
             monto_letras: document.getElementById('f-letras')?.value.trim(),
             forma_pago: document.querySelector('input[name="forma"]:checked')?.value ?? 'Efectivo',
@@ -263,7 +263,7 @@ if (btnGuardar) {
     });
 
     document.getElementById('btn-limpiar')?.addEventListener('click', () => {
-        ['f-nombre', 'f-entidad', 'f-lugar', 'f-monto', 'f-letras', 'f-receptor', 'f-cargo']
+        ['f-nombre', 'f-lugar', 'f-monto', 'f-letras', 'f-receptor', 'f-cargo', 'f-descripcion']
             .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
         document.getElementById('f-fecha').value = new Date().toISOString().split('T')[0];
         const sel = document.getElementById('f-concepto');
@@ -288,8 +288,7 @@ document.querySelectorAll('.btn-anular').forEach(btn => {
     btn.addEventListener('click', async () => {
         const { value: motivo, isConfirmed } = await Swal.fire({
             title: `Anular recibo No. ${btn.dataset.numero}`,
-            input: 'text',
-            inputLabel: 'Motivo (opcional)',
+            input: 'text', inputLabel: 'Motivo (opcional)',
             inputPlaceholder: 'Escribe el motivo...',
             background: '#0d1830', color: '#fff',
             confirmButtonColor: '#a82020', cancelButtonColor: '#1a2a5e',
